@@ -73,6 +73,7 @@ export interface TranscriptData {
   todos: TodoItem[];
   sessionStart?: Date;
   sessionName?: string;
+  effortLevel?: string;
 }
 
 export interface RenderContext {

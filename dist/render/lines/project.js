@@ -15,6 +15,9 @@ export function renderProjectLine(ctx) {
         const modelDisplay = planDisplay ? `${model} | ${planDisplay}` : model;
         parts.push(cyan(`[${modelDisplay}]`));
     }
+    if (display?.showEffort !== false && ctx.transcript.effortLevel) {
+        parts.push(dim(`effort:${ctx.transcript.effortLevel}`));
+    }
     let projectPart = null;
     if (display?.showProject !== false && ctx.stdin.cwd) {
         const segments = ctx.stdin.cwd.split(/[/\\]/).filter(Boolean);

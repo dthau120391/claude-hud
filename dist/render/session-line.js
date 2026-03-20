@@ -46,6 +46,10 @@ export function renderSessionLine(ctx) {
     else {
         parts.push(contextValueDisplay);
     }
+    // Effort level
+    if (display?.showEffort !== false && ctx.transcript.effortLevel) {
+        parts.push(dim(`effort:${ctx.transcript.effortLevel}`));
+    }
     // Project path + git status (SECOND)
     let projectPart = null;
     if (display?.showProject !== false && ctx.stdin.cwd) {

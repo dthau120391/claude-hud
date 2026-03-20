@@ -38,6 +38,7 @@ export const DEFAULT_CONFIG = {
         showAgents: false,
         showTodos: false,
         showSessionName: false,
+        showEffort: true,
         autocompactBuffer: 'enabled',
         usageThreshold: 0,
         sevenDayThreshold: 80,
@@ -217,6 +218,9 @@ export function mergeConfig(userConfig) {
         showSessionName: typeof migrated.display?.showSessionName === 'boolean'
             ? migrated.display.showSessionName
             : DEFAULT_CONFIG.display.showSessionName,
+        showEffort: typeof migrated.display?.showEffort === 'boolean'
+            ? migrated.display.showEffort
+            : DEFAULT_CONFIG.display.showEffort,
         autocompactBuffer: validateAutocompactBuffer(migrated.display?.autocompactBuffer)
             ? migrated.display.autocompactBuffer
             : DEFAULT_CONFIG.display.autocompactBuffer,

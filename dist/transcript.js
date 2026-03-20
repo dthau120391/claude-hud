@@ -15,6 +15,7 @@ export async function parseTranscript(transcriptPath) {
     const taskIdToIndex = new Map();
     let latestSlug;
     let customTitle;
+    let effortLevel;
     try {
         const fileStream = fs.createReadStream(transcriptPath);
         const rl = readline.createInterface({
@@ -33,6 +34,20 @@ export async function parseTranscript(transcriptPath) {
                     latestSlug = entry.slug;
                 }
                 processEntry(entry, toolMap, agentMap, taskIdToIndex, latestTodos, result);
+                // Parse effort level from /effort command output
+                const rawContent = entry.message?.content;
+                if (typeof rawContent === 'string') {
+                    const setMatch = rawContent.match(/<local-command-stdout>Set effort level to (\w+)/);
+                    if (setMatch) {
+                        effortLevel = setMatch[1];
+                    }
+                    else {
+                        const queryMatch = rawContent.match(/<local-command-stdout>Effort level: (\w+)/);
+                        if (queryMatch) {
+                            effortLevel = queryMatch[1];
+                        }
+                    }
+                }
             }
             catch {
                 // Skip malformed lines
@@ -46,6 +61,7 @@ export async function parseTranscript(transcriptPath) {
     result.agents = Array.from(agentMap.values()).slice(-10);
     result.todos = latestTodos;
     result.sessionName = customTitle ?? latestSlug;
+    result.effortLevel = effortLevel;
     return result;
 }
 function processEntry(entry, toolMap, agentMap, taskIdToIndex, latestTodos, result) {
