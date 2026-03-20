@@ -40,6 +40,8 @@ export interface HudConfig {
         showTodos: boolean;
         showSessionName: boolean;
         showEffort: boolean;
+        showCost: boolean;
+        showCumulativeTokens: boolean;
         autocompactBuffer: AutocompactBufferMode;
         usageThreshold: number;
         sevenDayThreshold: number;

@@ -39,6 +39,8 @@ export const DEFAULT_CONFIG = {
         showTodos: false,
         showSessionName: false,
         showEffort: true,
+        showCost: true,
+        showCumulativeTokens: false,
         autocompactBuffer: 'enabled',
         usageThreshold: 0,
         sevenDayThreshold: 80,
@@ -221,6 +223,12 @@ export function mergeConfig(userConfig) {
         showEffort: typeof migrated.display?.showEffort === 'boolean'
             ? migrated.display.showEffort
             : DEFAULT_CONFIG.display.showEffort,
+        showCost: typeof migrated.display?.showCost === 'boolean'
+            ? migrated.display.showCost
+            : DEFAULT_CONFIG.display.showCost,
+        showCumulativeTokens: typeof migrated.display?.showCumulativeTokens === 'boolean'
+            ? migrated.display.showCumulativeTokens
+            : DEFAULT_CONFIG.display.showCumulativeTokens,
         autocompactBuffer: validateAutocompactBuffer(migrated.display?.autocompactBuffer)
             ? migrated.display.autocompactBuffer
             : DEFAULT_CONFIG.display.autocompactBuffer,

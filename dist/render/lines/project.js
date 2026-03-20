@@ -79,6 +79,16 @@ export function renderProjectLine(ctx) {
             parts.push(dim(`out: ${speed.toFixed(1)} tok/s`));
         }
     }
+    if (display?.showCost && ctx.stdin.cost?.total_cost_usd != null) {
+        parts.push(dim(`$${ctx.stdin.cost.total_cost_usd.toFixed(2)}`));
+    }
+    if (display?.showCumulativeTokens) {
+        const inTok = ctx.stdin.context_window?.total_input_tokens;
+        const outTok = ctx.stdin.context_window?.total_output_tokens;
+        if (inTok != null || outTok != null) {
+            parts.push(dim(`in:${formatCompactTokens(inTok ?? 0)} out:${formatCompactTokens(outTok ?? 0)}`));
+        }
+    }
     if (display?.showDuration !== false && ctx.sessionDuration) {
         parts.push(dim(`⏱️  ${ctx.sessionDuration}`));
     }
@@ -90,5 +100,12 @@ export function renderProjectLine(ctx) {
         return null;
     }
     return parts.join(' \u2502 ');
+}
+function formatCompactTokens(n) {
+    if (n >= 1000000)
+        return `${(n / 1000000).toFixed(1)}M`;
+    if (n >= 1000)
+        return `${(n / 1000).toFixed(0)}k`;
+    return n.toString();
 }
 //# sourceMappingURL=project.js.map

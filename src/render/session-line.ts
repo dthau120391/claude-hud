@@ -196,6 +196,20 @@ export function renderSessionLine(ctx: RenderContext): string {
     }
   }
 
+  // Cost
+  if (display?.showCost && ctx.stdin.cost?.total_cost_usd != null) {
+    parts.push(dim(`$${ctx.stdin.cost.total_cost_usd.toFixed(2)}`));
+  }
+
+  // Cumulative tokens
+  if (display?.showCumulativeTokens) {
+    const inTok = ctx.stdin.context_window?.total_input_tokens;
+    const outTok = ctx.stdin.context_window?.total_output_tokens;
+    if (inTok != null || outTok != null) {
+      parts.push(dim(`in:${formatTokens(inTok ?? 0)} out:${formatTokens(outTok ?? 0)}`));
+    }
+  }
+
   // Session duration
   if (display?.showSpeed) {
     const speed = getOutputSpeed(ctx.stdin);
