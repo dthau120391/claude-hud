@@ -44,7 +44,15 @@ Then run the install command below in that session. This is a [Claude Code platf
 /claude-hud:setup
 ```
 
+If setup says no JavaScript runtime was found on Windows, install one for your shell first. The simplest fallback is Node.js LTS:
+```powershell
+winget install OpenJS.NodeJS.LTS
+```
+Then restart your shell and run `/claude-hud:setup` again.
+
 Done! Restart Claude Code to load the new statusLine config, then the HUD will appear.
+
+On Windows, make that a full restart of Claude Code itself. The HUD may not appear until a fresh Claude Code session picks up the new `statusLine` config.
 
 ---
 

@@ -74,7 +74,7 @@ Remove-Item -Recurse -Force "$env:USERPROFILE\.claude\plugins\cache\temp_local_*
 '{"version": 2, "plugins": {}}' | Set-Content "$env:USERPROFILE\.claude\plugins\installed_plugins.json"
 ```
 
-After cleanup, tell user to **restart Claude Code** and run `/plugin install claude-hud` again.
+After cleanup, have Claude Code restart, then run `/plugin install claude-hud` again.
 
 ### Linux: Cross-Device Filesystem Check
 
@@ -103,6 +103,8 @@ This is a [Claude Code platform limitation](https://github.com/anthropics/claude
 | `win32` | `bash` (Git Bash, MSYS2) | bash (use macOS/Linux instructions) |
 | `win32` | `powershell`, `pwsh`, or `cmd` | PowerShell (use Windows instructions) |
 
+**Windows runtime note**: If runtime detection below fails on Windows, treat that as "the current shell cannot find `bun` or `node`". Guide the user to install or expose a shell-visible runtime for setup before continuing.
+
 ---
 
 **macOS/Linux** (Platform: `darwin` or `linux`):
@@ -111,14 +113,23 @@ This is a [Claude Code platform limitation](https://github.com/anthropics/claude
    ```bash
    ls -d "${CLAUDE_CONFIG_DIR:-$HOME/.claude}"/plugins/cache/claude-hud/claude-hud/*/ 2>/dev/null | awk -F/ '{ print $(NF-1) "\t" $0 }' | sort -t. -k1,1n -k2,2n -k3,3n -k4,4n | tail -1 | cut -f2-
    ```
-   If empty, the plugin is not installed. Go back to Step 0 to check for ghost installation or EXDEV issues. If Step 0 was clean, tell user to install via `/plugin install claude-hud` first.
+   If empty, the plugin is not installed. Go back to Step 0 to check for ghost installation or EXDEV issues. If Step 0 was clean, direct Claude Code to run `/plugin install claude-hud` first.
 
 2. Get runtime absolute path (prefer bun for performance, fallback to node):
    ```bash
    command -v bun 2>/dev/null || command -v node 2>/dev/null
    ```
 
-   If empty, stop and tell user to install Node.js or Bun.
+   If empty, stop and direct Claude Code to install or expose Node.js or Bun for the current shell before continuing.
+   - On **Windows + Git Bash/MSYS2**, explicitly explain that the current Git Bash session could not find `bun` or `node`, even if Claude Code itself is installed.
+   - If `winget` is available, recommend:
+     ```bash
+     winget install OpenJS.NodeJS.LTS
+     ```
+   - Otherwise direct Claude Code to use one of these installation options:
+     - Node.js LTS from https://nodejs.org/
+     - Bun from https://bun.sh/
+   - After installation, restart the shell and re-run `/claude-hud:setup`.
 
 3. Verify the runtime exists:
    ```bash
@@ -148,14 +159,20 @@ Choose instructions by `Shell:` value before running any commands:
    ```powershell
    (Get-ChildItem "$env:USERPROFILE\.claude\plugins\cache\claude-hud\claude-hud" -Directory | Where-Object { $_.Name -match '^\d+(\.\d+)+$' } | Sort-Object { [version]$_.Name } -Descending | Select-Object -First 1).FullName
    ```
-   If empty or errors, the plugin is not installed. Tell user to install via marketplace first.
+   If empty or errors, the plugin is not installed. Direct Claude Code to install it from the marketplace first.
 
 2. Get runtime absolute path (prefer bun, fallback to node):
    ```powershell
    if (Get-Command bun -ErrorAction SilentlyContinue) { (Get-Command bun).Source } elseif (Get-Command node -ErrorAction SilentlyContinue) { (Get-Command node).Source } else { Write-Error "Neither bun nor node found" }
    ```
 
-   If neither found, stop and tell user to install Node.js or Bun.
+   If neither found, stop and direct Claude Code to install or expose Node.js or Bun for the current shell before continuing.
+   - Explain that the current PowerShell session could not find `bun` or `node`.
+   - If `winget` is available, recommend:
+     ```powershell
+     winget install OpenJS.NodeJS.LTS
+     ```
+   - Otherwise direct Claude Code to use either Node.js LTS or Bun, then restart PowerShell and re-run `/claude-hud:setup`.
 
 3. Check if runtime is bun (by filename). If bun, use `src\index.ts`. Otherwise use `dist\index.js`.
 
@@ -197,6 +214,10 @@ After successfully writing the config, tell the user:
 
 > ✅ Config written. **Please restart Claude Code now** — quit and run `claude` again in your terminal.
 > Once restarted, run `/claude-hud:setup` again to complete Step 4 and verify the HUD is working.
+
+**Windows note**: Keep the restart guidance separate from runtime installation guidance.
+- If the user just installed Node.js or Bun, they should restart their shell first so `bun` or `node` is available in `PATH`.
+- After `statusLine` is written successfully, they should fully quit Claude Code and launch a fresh session before judging whether the HUD setup worked.
 
 **Note**: The generated command dynamically finds and runs the latest installed plugin version. Updates are automatic - no need to re-run setup after plugin updates. If the HUD suddenly stops working, re-run `/claude-hud:setup` to verify the plugin is still installed.
 
