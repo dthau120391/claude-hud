@@ -1581,6 +1581,24 @@ describe('getProxyUrl', () => {
   });
 });
 
+describe('isScopedLimitReached', () => {
+  const base = { planName: 'Team', fiveHour: 20, sevenDay: 30, fiveHourResetAt: null, sevenDayResetAt: null };
+
+  test('returns true when the model-scoped week is at 100 — and that is not an account-wide cap', async () => {
+    const { isScopedLimitReached, isLimitReached } = await import('../dist/types.js');
+    const data = { ...base, sevenDayScopedModel: 'Fable', sevenDayScoped: 100, sevenDayScopedResetAt: null };
+    assert.equal(isScopedLimitReached(data), true);
+    assert.equal(isLimitReached(data), false);
+  });
+
+  test('returns false below 100, without a model name, or without the scoped fields', async () => {
+    const { isScopedLimitReached } = await import('../dist/types.js');
+    assert.equal(isScopedLimitReached({ ...base, sevenDayScopedModel: 'Fable', sevenDayScoped: 99, sevenDayScopedResetAt: null }), false);
+    assert.equal(isScopedLimitReached({ ...base, sevenDayScopedModel: null, sevenDayScoped: 100, sevenDayScopedResetAt: null }), false);
+    assert.equal(isScopedLimitReached(base), false);
+  });
+});
+
 describe('isLimitReached', () => {
   test('returns true when fiveHour is 100', async () => {
     // Import from types since isLimitReached is exported there

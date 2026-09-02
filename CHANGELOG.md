@@ -4,6 +4,11 @@ All notable changes to Claude HUD will be documented in this file.
 
 ## [Unreleased]
 
+## [0.0.12] - 2026-09-02
+
+### Added
+- A model-scoped week at 100% now renders as its own alarm — `⚠ Fable limit reached (resets 2d 20h)` — in both layouts. An account-wide cap (5h or 7d at 100%) still takes precedence with the plain `⚠ Limit reached`.
+
 ## [0.0.11] - 2026-09-02
 
 ### Added

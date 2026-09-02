@@ -171,6 +171,8 @@ The weekly percentages appear when above the `display.sevenDayThreshold` (defaul
 Context █████░░░░░ 45% │ Usage ██░░░░░░░░ 25% (1h 30m / 5h) | ██████████ 85% (2d / 7d) | ███░░░░░░░ 29% (2d / 7d Fable)
 ```
 
+When the model-scoped week itself hits 100%, the line becomes `Usage ⚠ Fable limit reached (resets 2d 20h)`. An account-wide cap (5h or 7d at 100%) takes precedence and shows the plain `⚠ Limit reached`.
+
 To disable, set `display.showUsage` to `false`.
 
 **Requirements:**

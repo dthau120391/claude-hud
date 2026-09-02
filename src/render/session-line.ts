@@ -1,5 +1,5 @@
 import type { RenderContext } from '../types.js';
-import { isLimitReached } from '../types.js';
+import { isLimitReached, isScopedLimitReached } from '../types.js';
 import { getContextPercent, getBufferedPercent, getModelName, getProviderLabel, getTotalTokens } from '../stdin.js';
 import { getOutputSpeed } from '../speed-tracker.js';
 import { coloredBar, critical, cyan, dim, magenta, red, warning, yellow, getContextColor, getQuotaColor, quotaBar, claudeOrange, RESET } from './colors.js';
@@ -155,6 +155,10 @@ export function renderSessionLine(ctx: RenderContext): string {
         ? formatResetTime(ctx.usageData.fiveHourResetAt)
         : formatResetTime(ctx.usageData.sevenDayResetAt);
       parts.push(critical(`⚠ Limit reached${resetTime ? ` (resets ${resetTime})` : ''}`, colors));
+    } else if (isScopedLimitReached(ctx.usageData)) {
+      // Model-scoped cap (e.g. the Fable week at 100%): its own alarm, after the account-wide one.
+      const resetTime = formatResetTime(ctx.usageData.sevenDayScopedResetAt ?? null);
+      parts.push(critical(`⚠ ${ctx.usageData.sevenDayScopedModel} limit reached${resetTime ? ` (resets ${resetTime})` : ''}`, colors));
     } else {
       const usageThreshold = display?.usageThreshold ?? 0;
       const fiveHour = ctx.usageData.fiveHour;

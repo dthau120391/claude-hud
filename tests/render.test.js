@@ -888,6 +888,35 @@ test('renderUsageLine counts the model-scoped week toward usageThreshold', () =>
   assert.ok(stripAnsi(line).includes('Fable'), `scoped week shown: ${stripAnsi(line)}`);
 });
 
+test('renderSessionLine turns a 100% model-scoped week into its own limit alarm', () => {
+  const ctx = baseContext();
+  ctx.config.display.sevenDayThreshold = 0;
+  ctx.usageData = scopedUsageData({ sevenDayScoped: 100 });
+
+  const line = stripAnsi(renderSessionLine(ctx));
+  assert.ok(line.includes('⚠ Fable limit reached (resets 2d 20h)'), `scoped alarm names the model: ${line}`);
+  assert.ok(!line.includes('5h:'), `the alarm replaces the bars, like the account-wide one: ${line}`);
+});
+
+test('renderSessionLine lets an account-wide cap take precedence over a scoped one', () => {
+  const ctx = baseContext();
+  ctx.usageData = scopedUsageData({ sevenDay: 100, sevenDayScoped: 100 });
+
+  const line = stripAnsi(renderSessionLine(ctx));
+  assert.ok(line.includes('⚠ Limit reached'), `account-wide alarm shown: ${line}`);
+  assert.ok(!line.includes('Fable limit'), `scoped alarm suppressed when the account is capped: ${line}`);
+});
+
+test('renderUsageLine turns a 100% model-scoped week into its own limit alarm', () => {
+  const ctx = baseContext();
+  ctx.config.display.usageBarEnabled = true;
+  ctx.usageData = scopedUsageData({ sevenDayScoped: 100, sevenDayScopedResetAt: null });
+
+  const line = stripAnsi(renderUsageLine(ctx));
+  assert.ok(line.includes('⚠ Fable limit reached'), `expanded layout shows the scoped alarm: ${line}`);
+  assert.ok(!line.includes('resets'), `no countdown when the reset time is unknown: ${line}`);
+});
+
 test('renderSessionLine shows 5hr reset countdown', () => {
   const ctx = baseContext();
   const resetTime = new Date(Date.now() + 7200000); // 2 hours from now

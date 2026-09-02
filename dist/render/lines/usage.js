@@ -1,4 +1,4 @@
-import { isLimitReached } from '../../types.js';
+import { isLimitReached, isScopedLimitReached } from '../../types.js';
 import { getProviderLabel } from '../../stdin.js';
 import { critical, warning, dim, getQuotaColor, quotaBar, RESET } from '../colors.js';
 import { getAdaptiveBarWidth } from '../../utils/terminal.js';
@@ -24,6 +24,11 @@ export function renderUsageLine(ctx) {
             ? formatResetTime(ctx.usageData.fiveHourResetAt)
             : formatResetTime(ctx.usageData.sevenDayResetAt);
         return `${label} ${critical(`⚠ Limit reached${resetTime ? ` (resets ${resetTime})` : ''}`, colors)}`;
+    }
+    // Model-scoped cap (e.g. the Fable week at 100%): its own alarm, checked AFTER the account-wide one.
+    if (isScopedLimitReached(ctx.usageData)) {
+        const resetTime = formatResetTime(ctx.usageData.sevenDayScopedResetAt ?? null);
+        return `${label} ${critical(`⚠ ${ctx.usageData.sevenDayScopedModel} limit reached${resetTime ? ` (resets ${resetTime})` : ''}`, colors)}`;
     }
     const threshold = display?.usageThreshold ?? 0;
     const fiveHour = ctx.usageData.fiveHour;
