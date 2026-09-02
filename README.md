@@ -145,7 +145,7 @@ Edit `~/.claude/plugins/claude-hud/config.json` directly for advanced settings s
 | `display.showSpeed` | boolean | false | Show output token speed `out: 42.1 tok/s` |
 | `display.showUsage` | boolean | true | Show usage limits (Pro/Max/Team only) |
 | `display.usageBarEnabled` | boolean | true | Display usage as visual bar instead of text |
-| `display.sevenDayThreshold` | 0-100 | 80 | Show 7-day usage when >= threshold (0 = always) |
+| `display.sevenDayThreshold` | 0-100 | 80 | Show weekly usage (all models, and the model-scoped week such as `Fable`) when >= threshold (0 = always) |
 | `display.showTokenBreakdown` | boolean | true | Show token details at high context (85%+) |
 | `display.showTools` | boolean | false | Show tools activity line |
 | `display.showAgents` | boolean | false | Show agents activity line |
@@ -165,10 +165,10 @@ Supported color names: `red`, `green`, `yellow`, `magenta`, `cyan`, `brightBlue`
 
 Usage display is **enabled by default** for Claude Pro, Max, and Team subscribers. It shows your rate limit consumption on line 2 alongside the context bar.
 
-The 7-day percentage appears when above the `display.sevenDayThreshold` (default 80%):
+The weekly percentages appear when above the `display.sevenDayThreshold` (default 80%). When your plan also carries a model-scoped week (what `/usage` calls `Current week (Fable)`), it follows the all-models 7-day bar, labelled with the model name:
 
 ```
-Context █████░░░░░ 45% │ Usage ██░░░░░░░░ 25% (1h 30m / 5h) | ██████████ 85% (2d / 7d)
+Context █████░░░░░ 45% │ Usage ██░░░░░░░░ 25% (1h 30m / 5h) | ██████████ 85% (2d / 7d) | ███░░░░░░░ 29% (2d / 7d Fable)
 ```
 
 To disable, set `display.showUsage` to `false`.

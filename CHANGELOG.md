@@ -4,6 +4,11 @@ All notable changes to Claude HUD will be documented in this file.
 
 ## [Unreleased]
 
+## [0.0.11] - 2026-09-02
+
+### Added
+- Model-scoped weekly usage — the `Current week (Fable)` window from `/usage` — parsed from the usage API's `limits[]` (`kind: weekly_scoped`) and shown after the 7-day bar in both layouts, labelled with the model name. It follows `display.sevenDayThreshold`, since it is a weekly window too. Cache files written by older versions still load (the new fields are optional).
+
 ## [0.0.10] - 2026-03-14
 
 ### Added

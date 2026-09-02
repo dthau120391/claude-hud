@@ -10,6 +10,18 @@ import { createDebug } from './debug.js';
 import { getClaudeConfigDir, getHudPluginDir } from './claude-config-dir.js';
 const debug = createDebug('usage');
 const LEGACY_KEYCHAIN_SERVICE_NAME = 'Claude Code-credentials';
+/**
+ * Pick the model-scoped weekly limit ("Current week (Fable)" in /usage).
+ * Prefers the entry flagged is_active when several models are listed.
+ */
+function pickScopedWeekly(limits) {
+    if (!Array.isArray(limits))
+        return null;
+    const scoped = limits.filter((l) => l && l.kind === 'weekly_scoped' && l.scope?.model?.display_name);
+    if (scoped.length === 0)
+        return null;
+    return scoped.find((l) => l.is_active) ?? scoped[0];
+}
 // File-based cache (HUD runs as new process each render, so in-memory cache won't persist)
 const CACHE_TTL_MS = 5 * 60_000; // 5 minutes — matches Anthropic usage API rate limit window
 const CACHE_FAILURE_TTL_MS = 15_000; // 15 seconds for failed requests
@@ -53,6 +65,9 @@ function hydrateCacheData(data) {
     }
     if (data.sevenDayResetAt) {
         data.sevenDayResetAt = new Date(data.sevenDayResetAt);
+    }
+    if (data.sevenDayScopedResetAt) {
+        data.sevenDayScopedResetAt = new Date(data.sevenDayScopedResetAt);
     }
     return data;
 }
@@ -322,6 +337,9 @@ export async function getUsage(overrides = {}) {
                 sevenDay: null,
                 fiveHourResetAt: null,
                 sevenDayResetAt: null,
+                sevenDayScopedModel: null,
+                sevenDayScoped: null,
+                sevenDayScopedResetAt: null,
                 apiUnavailable: true,
                 apiError: apiResult.error,
             };
@@ -347,12 +365,20 @@ export async function getUsage(overrides = {}) {
         const sevenDay = parseUtilization(apiResult.data.seven_day?.utilization);
         const fiveHourResetAt = parseDate(apiResult.data.five_hour?.resets_at);
         const sevenDayResetAt = parseDate(apiResult.data.seven_day?.resets_at);
+        // Model-scoped week ("Current week (Fable)") — lives only in limits[], with an integer percent.
+        const scoped = pickScopedWeekly(apiResult.data.limits);
+        const sevenDayScopedModel = scoped?.scope?.model?.display_name ?? null;
+        const sevenDayScoped = scoped ? parseUtilization(scoped.percent) : null;
+        const sevenDayScopedResetAt = scoped ? parseDate(scoped.resets_at ?? undefined) : null;
         const result = {
             planName,
             fiveHour,
             sevenDay,
             fiveHourResetAt,
             sevenDayResetAt,
+            sevenDayScopedModel,
+            sevenDayScoped,
+            sevenDayScopedResetAt,
         };
         // Write to file cache — also store as lastGoodData for rate-limit resilience
         writeCache(homeDir, result, now, { lastGoodData: result });

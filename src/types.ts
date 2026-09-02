@@ -67,6 +67,14 @@ export interface UsageData {
   sevenDay: number | null;  // 0-100 percentage, null if unavailable
   fiveHourResetAt: Date | null;
   sevenDayResetAt: Date | null;
+  /**
+   * Model-scoped weekly window — "Current week (Fable)" in /usage. The API reports it only inside
+   * `limits[]` as kind 'weekly_scoped' (the legacy `seven_day_opus`-style keys are null now).
+   * Optional so cache files written before 0.0.11 still hydrate; absent means "not reported".
+   */
+  sevenDayScopedModel?: string | null;  // e.g. 'Fable'
+  sevenDayScoped?: number | null;       // 0-100 percentage, null if unavailable
+  sevenDayScopedResetAt?: Date | null;
   apiUnavailable?: boolean; // true if API call failed (user should check DEBUG logs)
   apiError?: string; // short error reason (e.g., 401, timeout)
 }

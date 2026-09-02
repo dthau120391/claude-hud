@@ -145,7 +145,10 @@ export function renderSessionLine(ctx) {
             const usageThreshold = display?.usageThreshold ?? 0;
             const fiveHour = ctx.usageData.fiveHour;
             const sevenDay = ctx.usageData.sevenDay;
-            const effectiveUsage = Math.max(fiveHour ?? 0, sevenDay ?? 0);
+            // Model-scoped week ("Current week (Fable)") — optional fields, absent on pre-0.0.11 caches.
+            const scopedModel = ctx.usageData.sevenDayScopedModel ?? null;
+            const scoped = ctx.usageData.sevenDayScoped ?? null;
+            const effectiveUsage = Math.max(fiveHour ?? 0, sevenDay ?? 0, scoped ?? 0);
             if (effectiveUsage >= usageThreshold) {
                 const syncingSuffix = ctx.usageData.apiError === 'rate-limited'
                     ? ` ${dim('(syncing...)')}`
@@ -161,21 +164,31 @@ export function renderSessionLine(ctx) {
                         ? `5h: ${fiveHourDisplay} (${fiveHourReset})`
                         : `5h: ${fiveHourDisplay}`);
                 const sevenDayThreshold = display?.sevenDayThreshold ?? 80;
+                const weeklyParts = [];
                 if (sevenDay !== null && sevenDay >= sevenDayThreshold) {
                     const sevenDayDisplay = formatUsagePercent(sevenDay, colors);
                     const sevenDayReset = formatResetTime(ctx.usageData.sevenDayResetAt);
-                    const sevenDayPart = usageBarEnabled
+                    weeklyParts.push(usageBarEnabled
                         ? (sevenDayReset
                             ? `${quotaBar(sevenDay, barWidth, colors)} ${sevenDayDisplay} (${sevenDayReset} / 7d)`
                             : `${quotaBar(sevenDay, barWidth, colors)} ${sevenDayDisplay}`)
                         : (sevenDayReset
                             ? `7d: ${sevenDayDisplay} (${sevenDayReset})`
-                            : `7d: ${sevenDayDisplay}`);
-                    parts.push(`${fiveHourPart} | ${sevenDayPart}${syncingSuffix}`);
+                            : `7d: ${sevenDayDisplay}`));
                 }
-                else {
-                    parts.push(`${fiveHourPart}${syncingSuffix}`);
+                // Model-scoped week ("Current week (Fable)") shares sevenDayThreshold — it is a weekly window too.
+                if (scoped !== null && scopedModel && scoped >= sevenDayThreshold) {
+                    const scopedDisplay = formatUsagePercent(scoped, colors);
+                    const scopedReset = formatResetTime(ctx.usageData.sevenDayScopedResetAt ?? null);
+                    weeklyParts.push(usageBarEnabled
+                        ? (scopedReset
+                            ? `${quotaBar(scoped, barWidth, colors)} ${scopedDisplay} (${scopedReset} / 7d ${scopedModel})`
+                            : `${quotaBar(scoped, barWidth, colors)} ${scopedDisplay} ${dim(scopedModel)}`)
+                        : (scopedReset
+                            ? `7d ${scopedModel}: ${scopedDisplay} (${scopedReset})`
+                            : `7d ${scopedModel}: ${scopedDisplay}`));
                 }
+                parts.push(`${fiveHourPart}${weeklyParts.map((p) => ` | ${p}`).join('')}${syncingSuffix}`);
             }
         }
     }

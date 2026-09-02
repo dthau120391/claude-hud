@@ -28,7 +28,10 @@ export function renderUsageLine(ctx) {
     const threshold = display?.usageThreshold ?? 0;
     const fiveHour = ctx.usageData.fiveHour;
     const sevenDay = ctx.usageData.sevenDay;
-    const effectiveUsage = Math.max(fiveHour ?? 0, sevenDay ?? 0);
+    // Model-scoped week ("Current week (Fable)") — optional fields, absent on pre-0.0.11 caches.
+    const scopedModel = ctx.usageData.sevenDayScopedModel ?? null;
+    const scoped = ctx.usageData.sevenDayScoped ?? null;
+    const effectiveUsage = Math.max(fiveHour ?? 0, sevenDay ?? 0, scoped ?? 0);
     if (effectiveUsage < threshold) {
         return null;
     }
@@ -46,19 +49,33 @@ export function renderUsageLine(ctx) {
     const syncingSuffix = ctx.usageData.apiError === 'rate-limited'
         ? ` ${dim('(syncing...)')}`
         : '';
+    const weeklyParts = [];
     if (sevenDay !== null && sevenDay >= sevenDayThreshold) {
         const sevenDayDisplay = formatUsagePercent(sevenDay, colors);
         const sevenDayReset = formatResetTime(ctx.usageData.sevenDayResetAt);
-        const sevenDayPart = usageBarEnabled
+        weeklyParts.push(usageBarEnabled
             ? (sevenDayReset
                 ? `${quotaBar(sevenDay, getAdaptiveBarWidth(), colors)} ${sevenDayDisplay} (resets in ${sevenDayReset})`
                 : `${quotaBar(sevenDay, getAdaptiveBarWidth(), colors)} ${sevenDayDisplay}`)
             : (sevenDayReset
                 ? `7d: ${sevenDayDisplay} (resets in ${sevenDayReset})`
-                : `7d: ${sevenDayDisplay}`);
-        return `${label} ${fiveHourPart} | ${sevenDayPart}${syncingSuffix}`;
+                : `7d: ${sevenDayDisplay}`));
     }
-    return `${label} ${fiveHourPart}${syncingSuffix}`;
+    // The model-scoped week follows the same threshold: it is a weekly window too, and it is the
+    // one that binds first for the model in use (e.g. Fable 29% while all-models sits at 20%).
+    if (scoped !== null && scopedModel && scoped >= sevenDayThreshold) {
+        const scopedDisplay = formatUsagePercent(scoped, colors);
+        const scopedReset = formatResetTime(ctx.usageData.sevenDayScopedResetAt ?? null);
+        weeklyParts.push(usageBarEnabled
+            ? (scopedReset
+                ? `${quotaBar(scoped, getAdaptiveBarWidth(), colors)} ${scopedDisplay} ${dim(scopedModel)} (resets in ${scopedReset})`
+                : `${quotaBar(scoped, getAdaptiveBarWidth(), colors)} ${scopedDisplay} ${dim(scopedModel)}`)
+            : (scopedReset
+                ? `7d ${scopedModel}: ${scopedDisplay} (resets in ${scopedReset})`
+                : `7d ${scopedModel}: ${scopedDisplay}`));
+    }
+    const weeklySuffix = weeklyParts.map((p) => ` | ${p}`).join('');
+    return `${label} ${fiveHourPart}${weeklySuffix}${syncingSuffix}`;
 }
 function formatUsagePercent(percent, colors) {
     if (percent === null) {

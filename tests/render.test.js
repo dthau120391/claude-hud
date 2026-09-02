@@ -799,6 +799,95 @@ test('renderSessionLine respects sevenDayThreshold override', () => {
   assert.ok(line.includes('7d:'), 'should include 7d when threshold is 0');
 });
 
+// Model-scoped week — "Current week (Fable)" in /usage — rendered after the 7d window.
+function scopedUsageData(overrides = {}) {
+  return {
+    planName: 'Team',
+    fiveHour: 18,
+    sevenDay: 20,
+    fiveHourResetAt: null,
+    sevenDayResetAt: null,
+    sevenDayScopedModel: 'Fable',
+    sevenDayScoped: 29,
+    sevenDayScopedResetAt: new Date(Date.now() + (68 * 60 * 60 * 1000)), // 2d 20h from now
+    ...overrides,
+  };
+}
+
+test('renderSessionLine shows the model-scoped week after 7d in text-only mode', () => {
+  const ctx = baseContext();
+  ctx.config.display.sevenDayThreshold = 0;
+  ctx.config.display.usageBarEnabled = false;
+  ctx.usageData = scopedUsageData();
+
+  const line = stripAnsi(renderSessionLine(ctx));
+  assert.ok(line.includes('7d: 20%'), `should keep the all-models week: ${line}`);
+  assert.ok(line.includes('7d Fable: 29% (2d 20h)'), `should label the scoped week with the model: ${line}`);
+  assert.ok(line.indexOf('7d: 20%') < line.indexOf('7d Fable'), `scoped week follows the all-models week: ${line}`);
+});
+
+test('renderSessionLine labels the model-scoped week in bar mode', () => {
+  const ctx = baseContext();
+  ctx.config.display.sevenDayThreshold = 0;
+  ctx.config.display.usageBarEnabled = true;
+  ctx.usageData = scopedUsageData();
+
+  const line = stripAnsi(renderSessionLine(ctx));
+  assert.ok(line.includes('29% (2d 20h / 7d Fable)'), `bar mode names the model in the suffix: ${line}`);
+});
+
+test('renderSessionLine hides the model-scoped week below sevenDayThreshold', () => {
+  const ctx = baseContext();
+  ctx.config.display.sevenDayThreshold = 80;
+  ctx.usageData = scopedUsageData();
+
+  const line = stripAnsi(renderSessionLine(ctx));
+  assert.ok(!line.includes('Fable'), `29% is under the 80% threshold: ${line}`);
+  assert.ok(line.includes('5h:'), `5h stays visible: ${line}`);
+});
+
+test('renderSessionLine tolerates usage data without the scoped fields (pre-0.0.11 cache)', () => {
+  const ctx = baseContext();
+  ctx.config.display.sevenDayThreshold = 0;
+  ctx.usageData = { planName: 'Pro', fiveHour: 10, sevenDay: 5, fiveHourResetAt: null, sevenDayResetAt: null };
+
+  const line = stripAnsi(renderSessionLine(ctx));
+  assert.ok(line.includes('7d: 5%'), `legacy shape still renders 7d: ${line}`);
+  assert.ok(!line.includes('Fable') && !line.includes('null'), `no scoped output without scoped data: ${line}`);
+});
+
+test('renderUsageLine labels the model-scoped week with the model name in bar mode', () => {
+  const ctx = baseContext();
+  ctx.config.display.sevenDayThreshold = 0;
+  ctx.config.display.usageBarEnabled = true;
+  ctx.usageData = scopedUsageData();
+
+  const line = stripAnsi(renderUsageLine(ctx));
+  assert.ok(line.includes('29% Fable (resets in 2d 20h)'), `expanded layout names the model before the countdown: ${line}`);
+  assert.equal((line.match(/\|/g) ?? []).length, 2, `5h | 7d | Fable = two separators: ${line}`);
+});
+
+test('renderUsageLine shows the model-scoped week in text-only mode', () => {
+  const ctx = baseContext();
+  ctx.config.display.sevenDayThreshold = 0;
+  ctx.config.display.usageBarEnabled = false;
+  ctx.usageData = scopedUsageData();
+
+  const line = stripAnsi(renderUsageLine(ctx));
+  assert.ok(line.includes('7d Fable: 29% (resets in 2d 20h)'), `text mode labels the scoped week: ${line}`);
+});
+
+test('renderUsageLine counts the model-scoped week toward usageThreshold', () => {
+  const ctx = baseContext();
+  ctx.config.display.usageThreshold = 25;
+  ctx.config.display.sevenDayThreshold = 0;
+  ctx.usageData = scopedUsageData({ fiveHour: 5, sevenDay: 10 });
+
+  const line = renderUsageLine(ctx);
+  assert.ok(line !== null, 'a hot scoped week alone must keep the usage line visible');
+  assert.ok(stripAnsi(line).includes('Fable'), `scoped week shown: ${stripAnsi(line)}`);
+});
+
 test('renderSessionLine shows 5hr reset countdown', () => {
   const ctx = baseContext();
   const resetTime = new Date(Date.now() + 7200000); // 2 hours from now

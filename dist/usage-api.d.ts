@@ -1,5 +1,19 @@
 import type { UsageData } from './types.js';
 export type { UsageData } from './types.js';
+/** One entry of the usage API's `limits[]` array (present since mid-2026 payloads). */
+interface UsageApiLimit {
+    kind?: string;
+    percent?: number;
+    resets_at?: string | null;
+    scope?: {
+        model?: {
+            id?: string | null;
+            display_name?: string | null;
+        } | null;
+        surface?: string | null;
+    } | null;
+    is_active?: boolean;
+}
 interface UsageApiResponse {
     five_hour?: {
         utilization?: number;
@@ -9,6 +23,8 @@ interface UsageApiResponse {
         utilization?: number;
         resets_at?: string;
     };
+    /** Model-scoped weeks (e.g. Fable) appear ONLY here, as kind 'weekly_scoped'. */
+    limits?: UsageApiLimit[] | null;
 }
 interface UsageApiResult {
     data: UsageApiResponse | null;

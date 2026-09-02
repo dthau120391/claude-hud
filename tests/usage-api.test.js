@@ -569,6 +569,101 @@ describe('getUsage', () => {
     assert.equal(result?.sevenDay, 10);
   });
 
+  // Model-scoped week — what /usage calls "Current week (Fable)". Lives only in limits[].
+  function buildLimits({ scoped = [] } = {}) {
+    return [
+      { kind: 'session', group: 'session', percent: 18, resets_at: '2026-09-02T11:59:59Z', scope: null, is_active: false },
+      { kind: 'weekly_all', group: 'weekly', percent: 20, resets_at: '2026-09-05T13:59:59Z', scope: null, is_active: false },
+      ...scoped,
+    ];
+  }
+  const fableLimit = {
+    kind: 'weekly_scoped', group: 'weekly', percent: 29, resets_at: '2026-09-05T13:59:59Z',
+    scope: { model: { id: null, display_name: 'Fable' }, surface: null }, is_active: true,
+  };
+
+  test('parses the model-scoped week (Fable) from limits[]', async () => {
+    await writeCredentials(tempHome, buildCredentials({ subscriptionType: 'claude_team_2024' }));
+    const result = await getUsage({
+      homeDir: () => tempHome,
+      fetchApi: async () => buildApiResult({ data: buildApiResponse({ limits: buildLimits({ scoped: [fableLimit] }) }) }),
+      now: () => 1000,
+      readKeychain: () => null,
+    });
+
+    assert.equal(result?.sevenDayScopedModel, 'Fable');
+    assert.equal(result?.sevenDayScoped, 29);
+    assert.equal(result?.sevenDayScopedResetAt?.toISOString(), '2026-09-05T13:59:59.000Z');
+    // The legacy windows are still read from their own keys, not from limits[].
+    assert.equal(result?.fiveHour, 25);
+    assert.equal(result?.sevenDay, 10);
+  });
+
+  test('leaves the model-scoped week null when limits[] has no weekly_scoped entry', async () => {
+    await writeCredentials(tempHome, buildCredentials());
+    const result = await getUsage({
+      homeDir: () => tempHome,
+      fetchApi: async () => buildApiResult({ data: buildApiResponse({ limits: buildLimits() }) }),
+      now: () => 1000,
+      readKeychain: () => null,
+    });
+
+    assert.equal(result?.sevenDayScopedModel, null);
+    assert.equal(result?.sevenDayScoped, null);
+    assert.equal(result?.sevenDayScopedResetAt, null);
+  });
+
+  test('leaves the model-scoped week null on the older payload shape without limits[]', async () => {
+    await writeCredentials(tempHome, buildCredentials());
+    const result = await getUsage({
+      homeDir: () => tempHome,
+      fetchApi: async () => buildApiResult(),
+      now: () => 1000,
+      readKeychain: () => null,
+    });
+
+    assert.equal(result?.sevenDayScopedModel, null);
+    assert.equal(result?.sevenDayScoped, null);
+    assert.equal(result?.sevenDayScopedResetAt, null);
+  });
+
+  test('prefers the active model-scoped week when several models are listed', async () => {
+    await writeCredentials(tempHome, buildCredentials());
+    const opusLimit = {
+      ...fableLimit, percent: 40, is_active: false,
+      scope: { model: { id: null, display_name: 'Opus' }, surface: null },
+    };
+    const result = await getUsage({
+      homeDir: () => tempHome,
+      fetchApi: async () => buildApiResult({ data: buildApiResponse({ limits: buildLimits({ scoped: [opusLimit, fableLimit] }) }) }),
+      now: () => 1000,
+      readKeychain: () => null,
+    });
+
+    assert.equal(result?.sevenDayScopedModel, 'Fable');
+    assert.equal(result?.sevenDayScoped, 29);
+  });
+
+  test('hydrates the model-scoped reset time as a Date when served from cache', async () => {
+    await writeCredentials(tempHome, buildCredentials());
+    await getUsage({
+      homeDir: () => tempHome,
+      fetchApi: async () => buildApiResult({ data: buildApiResponse({ limits: buildLimits({ scoped: [fableLimit] }) }) }),
+      now: () => 1000,
+      readKeychain: () => null,
+    });
+    const cached = await getUsage({
+      homeDir: () => tempHome,
+      fetchApi: async () => { throw new Error('cache should have been served'); },
+      now: () => 2000,
+      readKeychain: () => null,
+    });
+
+    assert.equal(cached?.sevenDayScoped, 29);
+    assert.ok(cached?.sevenDayScopedResetAt instanceof Date, 'reset time must be rehydrated to a Date');
+    assert.equal(cached?.sevenDayScopedResetAt?.toISOString(), '2026-09-05T13:59:59.000Z');
+  });
+
   test('parses Team plan name', async () => {
     await writeCredentials(tempHome, buildCredentials({ subscriptionType: 'claude_team_2024' }));
     const result = await getUsage({
